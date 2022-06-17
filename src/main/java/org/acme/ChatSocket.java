@@ -27,16 +27,25 @@ import io.quarkus.infinispan.client.Remote;
         this.remoteCacheManager = remoteCacheManager;
      }
  
-     @Inject @Remote("location")
+     @Inject @Remote("profile")
      RemoteCache<String, String> cache;
  
      RemoteCacheManager remoteCacheManager;
 
     @OnOpen
     public void onOpen(Session session, @PathParam("username") String username) {
-        String userLocation = cache.get(username);  
-        session.getUserProperties().put("location",userLocation);
+        System.out.println("Opening");
         sessions.put(username, session);
+        String profile = cache.get(username);
+        if(profile==null){
+            profile = "";
+            cache.put(username,"-level=1-job=unknown");
+            System.out.println("Username and profile cached");
+        }else{
+            broadcast(username+" has joined the channel");
+            System.out.println("Username already exist in cache");
+        }
+        
     }
 
     @OnClose
