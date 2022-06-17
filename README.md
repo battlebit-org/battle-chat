@@ -5,23 +5,23 @@ Gamificated Chat
 
 ### Run infinispan (cache) server
 
-'''shell
+```shell
 podman run -d -p 11222:11222 -e USER="admin" -e PASS="password" --net=host quay.io/infinispan/server:13.0
-'''
+```
 
 ### Run web service
 
-'''shell
+```shell
 # dev mode
 ./mvnw compile quarkus:dev
-'''
+```
 
 ### Creating Caches
 
 
-'''shell
+```shell
 POST /rest/v2/caches/{cacheName}
-'''
+```
 
 
 The following "standard" formats are interchangeable:
@@ -36,7 +36,7 @@ text/plain
 
 #### Cache configuration
 
-'''json
+```json
 {
   "distributed-cache": {
     "mode": "SYNC",
@@ -73,16 +73,16 @@ text/plain
   }
 }
 
-'''
+```
 
 #### Cache creation example
 
-'''bash
+```bash
 curl -u admin:password --digest -X POST http://localhost:11222/rest/v2/caches/profile -d "@./profile.json"
-'''
+```
 
 #### Get your cache
 
-'''bash
+```bash
 curl -u admin:password --digest -X GET http://localhost:11222/rest/v2/caches/profile
-'''
+```
