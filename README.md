@@ -34,6 +34,18 @@ application/x-www-form-urlencoded
 
 text/plain
 
+#### Cache creation example
+
+```bash
+curl -v -u admin:password --digest -H 'Accept: application/json' -H 'Content-Type: application/json' -X POST http://localhost:11222/rest/v2/caches/profile -d "@./profile.json"
+```
+
+#### Get your cache
+
+```bash
+curl -u admin:password --digest -X GET http://localhost:11222/rest/v2/caches/profile
+```
+
 #### Cache configuration
 
 ```json
