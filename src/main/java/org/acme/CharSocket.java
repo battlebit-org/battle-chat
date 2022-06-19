@@ -27,16 +27,15 @@ import io.quarkus.infinispan.client.Remote;
         this.remoteCacheManager = remoteCacheManager;
      }
  
-     @Inject @Remote("location")
+     @Inject @Remote("character")
      RemoteCache<String, String> cache;
  
      RemoteCacheManager remoteCacheManager;
 
     @OnOpen
     public void onOpen(Session session, @PathParam("username") String username) {
-        String userLocation = cache.get(username);  
-        session.getUserProperties().put("location",userLocation);
         sessions.put(username, session);
+        broadcast("User " + username + " join");
     }
 
     @OnClose

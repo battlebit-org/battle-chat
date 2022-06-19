@@ -78,11 +78,11 @@ text/plain
 #### Cache creation example
 
 ```bash
-curl -u admin:password --digest -X POST http://localhost:11222/rest/v2/caches/profile -d "@./profile.json"
+curl -u admin:password --digest -X POST http://localhost:11222/rest/v2/caches/character -d "@./conf/character.json"
 ```
 
 #### Get your cache
 
 ```bash
-curl -u admin:password --digest -X GET http://localhost:11222/rest/v2/caches/profile
+curl -u admin:password --digest -X GET http://localhost:11222/rest/v2/caches/character
 ```

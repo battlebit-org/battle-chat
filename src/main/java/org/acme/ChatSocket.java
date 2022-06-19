@@ -27,7 +27,7 @@ import io.quarkus.infinispan.client.Remote;
         this.remoteCacheManager = remoteCacheManager;
      }
  
-     @Inject @Remote("profile")
+     @Inject @Remote("character")
      RemoteCache<String, String> cache;
  
      RemoteCacheManager remoteCacheManager;
