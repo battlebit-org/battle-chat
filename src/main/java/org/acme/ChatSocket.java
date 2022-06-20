@@ -41,30 +41,29 @@ import io.quarkus.infinispan.client.Remote;
             profile = "";
             cache.put(username,"-level=1-job=unknown");
             System.out.println("Username and profile cached");
-        }else{
-            broadcast(username+" has joined the channel");
-            System.out.println("Username already exist in cache");
         }
+        broadcast(username+" has joined the channel");
+        System.out.println("Username already exist in cache");
         
     }
 
     @OnClose
     public void onClose(Session session, @PathParam("username") String username) {
         sessions.remove(username);
-        broadcast("User " + username + " left");
+        broadcast(">>" + username + ": left");
     }
 
     @OnError
     public void onError(Session session, @PathParam("username") String username, Throwable throwable) {
         sessions.remove(username);
-        broadcast("User " + username + " left on error: " + throwable);
+        broadcast(">>" + username + ": left on error " + throwable);
     }
 
     @OnMessage
     public void onMessage(String message, @PathParam("username") String username) {
         cache.put(username, message);
         if (message.equalsIgnoreCase("_ready_")) {
-            broadcast("User " + username + " joined");
+            broadcast(">> " + username + ": joined");
         } else {
             broadcast(">> " + username + ": " + message );
         }

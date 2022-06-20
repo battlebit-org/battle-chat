@@ -135,6 +135,8 @@
                         console.log("Got char message: " + m.data);
                         var idName = getIdName(m.data)
                         addElement(m.data, idName);
+                        $("#chat").append(m.data + "\n");
+                        scrollToBottom();
 
                     };
                 }
@@ -158,6 +160,7 @@
             };
 
             var addElement = function (profile, idName) {
+                alert("idName"+idName);
                 var newDiv = document.createElement("div");
                 newDiv.setAttribute("id", idName);
                 newDiv.setAttribute("class", "circle");

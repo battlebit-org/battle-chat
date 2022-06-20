@@ -35,28 +35,28 @@ import io.quarkus.infinispan.client.Remote;
     @OnOpen
     public void onOpen(Session session, @PathParam("username") String username) {
         sessions.put(username, session);
-        broadcast("User " + username + " join");
+        broadcast(">> " + username + ": Profile");
     }
 
     @OnClose
     public void onClose(Session session, @PathParam("username") String username) {
         sessions.remove(username);
-        broadcast("User " + username + " left");
+        broadcast(">> " + username + ": Profile left");
     }
 
     @OnError
     public void onError(Session session, @PathParam("username") String username, Throwable throwable) {
         sessions.remove(username);
-        broadcast("User " + username + " left on error: " + throwable);
+        broadcast(">> " + username + ": left on error " + throwable);
     }
 
     @OnMessage
     public void onMessage(String message, @PathParam("username") String username) {
         cache.put(username, message);
         if (message.equalsIgnoreCase("_ready_")) {
-            broadcast("User " + username + " joined");
+            broadcast("💬 " + username + ": joined");
         } else {
-            broadcast(">> " + username + ": " + message );
+            broadcast("💬 " + username + ": " + message );
         }
     }
 
