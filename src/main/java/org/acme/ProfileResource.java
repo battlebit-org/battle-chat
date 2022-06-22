@@ -1,5 +1,8 @@
 package org.acme;
 
+import java.util.HashMap;
+import java.util.Set;
+
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -12,23 +15,32 @@ import org.infinispan.client.hotrod.RemoteCacheManager;
 
 import io.quarkus.infinispan.client.Remote;
 
-@Path("/profile/{username}")
+@Path("/profile")
 public class ProfileResource {
 
+    @Path("/{username}")
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    public String getProfile(@PathParam("username") String username) {
+    public String getOneProfile(@PathParam("username") String username) {
         if(cache.get(username) == null){
             cache.put(username,"-level=1-job=unknown");
         }
-        return ">>"+username+":"+cache.get(username);
+        return ">> "+username+":"+cache.get(username);
     }
     
+    @Path("/")
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public String getAllProfile() {
+        cache.getAll(Set<? extends String>);
+        return "";
+    }
+
     @Inject ProfileResource(RemoteCacheManager remoteCacheManager) {
         this.remoteCacheManager = remoteCacheManager;
      }
  
-     @Inject @Remote("profile")
+     @Inject @Remote("character")
      RemoteCache<String, String> cache;
  
      RemoteCacheManager remoteCacheManager;

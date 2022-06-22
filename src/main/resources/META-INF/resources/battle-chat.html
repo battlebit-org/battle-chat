@@ -111,7 +111,7 @@
                     };
                     chatSocket.onmessage = function (m) {
                         console.log("Got chat message: " + m.data);
-                        $("#chat").append(m.data + "\n");
+                        $("#chat").append(m.data.replaceAll('>>', ' 💬 ') + "\n");
                         scrollToBottom();
 
                     };
@@ -131,12 +131,20 @@
                         addElement(formatProfile(profile), idName);
 
                     };
-                    charSocket.onmessage = function (m) {
+                    charSocket.onmessage = async function (m) {
                         console.log("Got char message: " + m.data);
-                        var idName = getIdName(m.data)
-                        addElement(m.data, idName);
-                        $("#chat").append(m.data + "\n");
-                        scrollToBottom();
+                        var idName = getIdName(m.data);
+                        var idAction = getIdAction(m.data);
+                        console.log("idAction: "+idAction);
+                        if(idAction==null) {
+                            var profile = await getProfile(idName);
+                            console.log(profile);
+                            addElement(formatProfile(profile), idName);
+                        }else{
+                            $("#chat").append(m.data.replaceAll('>>', ' ℹ️ ') + "\n");
+                            scrollToBottom();
+                        }
+
 
                     };
                 }
@@ -160,7 +168,6 @@
             };
 
             var addElement = function (profile, idName) {
-                alert("idName"+idName);
                 var newDiv = document.createElement("div");
                 newDiv.setAttribute("id", idName);
                 newDiv.setAttribute("class", "circle");
@@ -179,12 +186,25 @@
             };
 
             var getIdName = function (data) {
-                let regexp = /^>>(.*)\:/g;
+                let regexp = /^>>\ (.*)\:/g;
 
                 let matchAll = data.matchAll(regexp);
                 matchAll = Array.from(matchAll); // array now
                 let firstMatch = matchAll[0];
 
+                return firstMatch[1];
+
+            };
+
+            var getIdAction = function (data) {
+                let regexp = /^>>.*\:.*[[(.*)]]/g;
+
+                let matchAll = data.matchAll(regexp);
+                matchAll = Array.from(matchAll); // array now
+                let firstMatch = matchAll[0];
+
+                console.log(matchAll.length);
+                if(matchAll.length==0) return null;
                 return firstMatch[1];
 
             };
@@ -204,6 +224,12 @@
                 var formatedProfile = rawProfile.replaceAll('-', ' ✅ ');
                 return formatedProfile;
             }
+
+            var formatMessage = function (rawMessage) {
+                var formatedMessage = rawMessage.replaceAll('>>', ' 💬 ');
+                return formatedMessage;
+            }
+
         </script>
     </body>
 

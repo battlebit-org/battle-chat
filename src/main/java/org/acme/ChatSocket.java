@@ -1,6 +1,7 @@
 package org.acme;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -29,19 +30,27 @@ import io.quarkus.infinispan.client.Remote;
  
      @Inject @Remote("character")
      RemoteCache<String, String> cache;
+
+     @Inject @Remote("character-active")
+     RemoteCache<String, String> cacheActive;
  
      RemoteCacheManager remoteCacheManager;
 
     @OnOpen
     public void onOpen(Session session, @PathParam("username") String username) {
         System.out.println("Opening");
+        
         sessions.put(username, session);
+        Set<String> usersList = sessions.keySet();
+
         String profile = cache.get(username);
         if(profile==null){
             profile = "";
             cache.put(username,"-level=1-job=unknown");
+            
             System.out.println("Username and profile cached");
         }
+        cacheActive.put("users", usersList.toString());
         broadcast(username+" has joined the channel");
         System.out.println("Username already exist in cache");
         
@@ -50,6 +59,7 @@ import io.quarkus.infinispan.client.Remote;
     @OnClose
     public void onClose(Session session, @PathParam("username") String username) {
         sessions.remove(username);
+        cacheActive.remove(username);
         broadcast(">>" + username + ": left");
     }
 
