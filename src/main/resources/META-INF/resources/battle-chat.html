@@ -125,24 +125,40 @@
                         $("#connect").attr("disabled", true);
                         $("#name").attr("disabled", true);
                         $("#msg").focus();
-                        var profile = await getProfile($("#name").val());
-                        console.log(profile);
-                        var idName = getIdName(profile)
-                        addElement(formatProfile(profile), idName);
+                        var activeProfiles = await getAllActiveProfile();
+                        console.log("activeProfiles: "+ activeProfiles);
+                        activeProfiles = activeProfiles.replaceAll('{','');
+                        activeProfiles = activeProfiles.replaceAll('}','');
+                        var profileArray = activeProfiles.split(',');
+                        console.log("activeProfiles: "+ activeProfiles);
+                        console.log("profileArray.length: "+ profileArray.length);
+                        profileArray.forEach(async function (element){
+                            console.log("element: "+element);
+                            element = element.replace("=",",");
+                            var userData = element.split(",");
+                            addElement(userData[1],userData[0].replace(/\s/g, ''));
+                            
+                        
+                        });
+                        
+
 
                     };
                     charSocket.onmessage = async function (m) {
                         console.log("Got char message: " + m.data);
-                        var idName = getIdName(m.data);
-                        var idAction = getIdAction(m.data);
-                        console.log("idAction: "+idAction);
-                        if(idAction==null) {
-                            var profile = await getProfile(idName);
-                            console.log(profile);
-                            addElement(formatProfile(profile), idName);
-                        }else{
-                            $("#chat").append(m.data.replaceAll('>>', ' ℹ️ ') + "\n");
-                            scrollToBottom();
+                        var contentArray = m.data.split(",");
+                        var idName = contentArray[0];
+                        var idAction = contentArray[1];
+                        var profile = contentArray[2];  
+                        console.log("idName: "+idName);
+                        console.log("idAction: "+idAction);           
+                        console.log("profile: "+profile);
+                        if(idAction.replace(/\s/g, '')=="add") {
+                            addElement(profile,idName);
+                        }else if(idAction.replace(/\s/g, '')=="remove"){
+                            removeElement(idName.replace(/\s/g, ''));
+                        }else if(idAction.replace(/\s/g, '')=="update"){
+                            addElement(profile,idName.replace(/\s/g, ''));
                         }
 
 
@@ -171,7 +187,7 @@
                 var newDiv = document.createElement("div");
                 newDiv.setAttribute("id", idName);
                 newDiv.setAttribute("class", "circle");
-                var newContent = document.createTextNode(profile);
+                var newContent = document.createTextNode(idName+","+profile);
                 newDiv.appendChild(newContent); //añade texto al div creado.
 
                 // añade el elemento creado y su contenido al DOM
@@ -182,6 +198,13 @@
                 } else {
                     currentDiv.replaceChild(newDiv, oldDiv);
                 }
+
+            };
+            var removeElement = function (idName) {
+
+                // añade el elemento creado y su contenido al DOM
+                var currentDiv = document.getElementById(idName);
+                currentDiv.remove();
 
             };
 
@@ -195,22 +218,51 @@
                 return firstMatch[1];
 
             };
-
-            var getIdAction = function (data) {
-                let regexp = /^>>.*\:.*[[(.*)]]/g;
+            var getProfileName = function (data) {
+                let regexp = /^(.*)\=.*/g;
 
                 let matchAll = data.matchAll(regexp);
                 matchAll = Array.from(matchAll); // array now
                 let firstMatch = matchAll[0];
 
-                console.log(matchAll.length);
+                return firstMatch[1];
+
+            };
+            var getIdAction = function (data) {
+                let regexp = /^>>.*\:.*[[(.*)]]/g;
+
+                let matchAll = data.matchAll(regexp);
+                matchAll = Array.from(matchAll);
+                let firstMatch = matchAll[0];
+
+                console.log("matchAll.length: "+matchAll.length);
+                if(matchAll.length==0) return null;
+                return firstMatch[1];
+
+            };
+            var getMessageContent = function (data) {
+                let regexp = /^>>.*\:\ \[(.*)\]/g;
+
+                let matchAll = data.matchAll(regexp);
+                matchAll = Array.from(matchAll);
+                let firstMatch = matchAll[0];
+
+                console.log("matchAll.length: "+matchAll.length);
                 if(matchAll.length==0) return null;
                 return firstMatch[1];
 
             };
 
             var getProfile = async function (username) {
-                var profile = await fetch('http://localhost:8080/profile/' + username).then(function (response) {
+                var profile = await fetch('http://localhost:8080/profile/single/' + username,{
+                                        method: 'GET', // *GET, POST, PUT, DELETE, etc.
+                                        mode: 'cors', // no-cors, *cors, same-origin
+                                        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+                                        credentials: 'same-origin', // include, *same-origin, omit
+                                        headers: {
+                                        'Content-Type': 'plain/text'
+                                        }
+                                    }).then(function (response) {
                     return response
                         .text()
                         .then(function (text) {
@@ -218,6 +270,26 @@
                         });
                 });
                 return profile;
+            };
+
+            var getAllActiveProfile = async function (usernames) {
+                var profiles = await fetch('http://localhost:8080/profile/all',{
+                                        method: 'POST', // *GET, POST, PUT, DELETE, etc.
+                                        mode: 'cors', // no-cors, *cors, same-origin
+                                        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+                                        credentials: 'same-origin', // include, *same-origin, omit
+                                        headers: {
+                                        'Content-Type': 'plain/text'
+                                        },
+                                        body: usernames
+                                    }).then(function (response) {
+                    return response
+                        .text()
+                        .then(function (text) {
+                            return text;
+                        });
+                });
+                return profiles;
             };
 
             var formatProfile = function (rawProfile) {

@@ -46,7 +46,7 @@ import io.quarkus.infinispan.client.Remote;
         String profile = cache.get(username);
         if(profile==null){
             profile = "";
-            cache.put(username,"-level=1-job=unknown");
+            cache.put(username,"level:1-job:unknown");
             
             System.out.println("Username and profile cached");
         }
@@ -59,8 +59,10 @@ import io.quarkus.infinispan.client.Remote;
     @OnClose
     public void onClose(Session session, @PathParam("username") String username) {
         sessions.remove(username);
-        cacheActive.remove(username);
-        broadcast(">>" + username + ": left");
+        Set<String> usersList = sessions.keySet();
+        cacheActive.remove("users");
+        cacheActive.put("users", usersList.toString());
+        broadcast(username + ",message");
     }
 
     @OnError

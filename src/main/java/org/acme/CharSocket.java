@@ -23,25 +23,30 @@ import io.quarkus.infinispan.client.Remote;
     public class CharSocket {
 
     Map<String, Session> sessions = new ConcurrentHashMap<>();
+
     @Inject CharSocket(RemoteCacheManager remoteCacheManager) {
         this.remoteCacheManager = remoteCacheManager;
      }
  
      @Inject @Remote("character")
      RemoteCache<String, String> cache;
- 
+
+     @Inject @Remote("character-active")
+     RemoteCache<String, String> cacheActive;
+
      RemoteCacheManager remoteCacheManager;
 
     @OnOpen
     public void onOpen(Session session, @PathParam("username") String username) {
         sessions.put(username, session);
-        broadcast(">> " + username + ": Profile");
+        String joinedProfile = cache.get(username) ;
+        broadcast(username + "," + "add" + "," + joinedProfile);
     }
 
     @OnClose
     public void onClose(Session session, @PathParam("username") String username) {
         sessions.remove(username);
-        broadcast(">> " + username + ": Profile left");
+        broadcast(username + "," + "remove" + "," + "");
     }
 
     @OnError
