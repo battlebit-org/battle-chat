@@ -49,10 +49,12 @@ import io.quarkus.infinispan.client.Remote;
             cache.put(username,"level:1-job:unknown");
             
             System.out.println("Username and profile cached");
+        }else{
+            System.out.println("Username already exist in cache");
         }
         cacheActive.put("users", usersList.toString());
         broadcast(username+" has joined the channel");
-        System.out.println("Username already exist in cache");
+        
         
     }
 

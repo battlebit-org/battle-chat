@@ -1,7 +1,11 @@
 package org.acme;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -57,11 +61,26 @@ import io.quarkus.infinispan.client.Remote;
 
     @OnMessage
     public void onMessage(String message, @PathParam("username") String username) {
-        cache.put(username, message);
-        if (message.equalsIgnoreCase("_ready_")) {
-            broadcast("💬 " + username + ": joined");
-        } else {
-            broadcast("💬 " + username + ": " + message );
+        String[] values = {"Seba","Admin"};
+        boolean contains = Arrays.stream(values).anyMatch(username::equals);
+        System.out.println("CHAR "+username+" Message: "+message);
+        if(message.startsWith("/") && contains){
+            System.out.println("CHAR "+username+" is admin ");
+            String joinedProfile = cache.get(username) ;
+            String[] attributes = null;
+            if(message.startsWith("/change exp")){
+                System.out.println("CHAR "+username+" change exp ");
+                System.out.println("CHAR joinedProfile "+joinedProfile);
+                List<String> commandAndParams = Arrays.asList(Pattern.compile(" ").split(message));
+                System.out.println("CHAR paso 1");
+                attributes = Pattern.compile("\\|").split(joinedProfile);
+                System.out.println("CHAR user exp "+attributes[1]);
+                Integer userExpValue = Integer.valueOf(attributes[1].split(":")[1]);
+                System.out.println("CHAR user exp value "+userExpValue);
+                attributes[1] = "exp:"+Math.addExact(userExpValue, Integer.valueOf(commandAndParams.get(4))) ;
+
+            }
+            broadcast(username + "," + "add" + "," + attributes.toString());
         }
     }
 

@@ -38,6 +38,7 @@ text/plain
 
 ```bash
 curl -v -u admin:password --digest -H 'Accept: application/json' -H 'Content-Type: application/json' -X POST http://localhost:11222/rest/v2/caches/character -d "@./conf/character.json"
+curl -v -u admin:password --digest -H 'Accept: application/json' -H 'Content-Type: application/json' -X POST http://localhost:11222/rest/v2/caches/character-active -d "@./conf/character.json"
 ```
 
 #### Get your cache
@@ -52,10 +53,15 @@ curl -u admin:password --digest -X GET http://localhost:11222/rest/v2/caches/cha
 {
   "distributed-cache": {
     "mode": "SYNC",
+    "statistics": true,
     "encoding": {
-      "media-type": "application/x-protostream"
-    },
-    "statistics": true
+      "key": {
+        "media-type": "application/x-protostream"
+      },
+      "value": {
+        "media-type": "application/x-protostream"
+      }
+    }
   }
 }
 
