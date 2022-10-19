@@ -47,7 +47,10 @@ public class ProfileResource {
         users = users.trim();
         System.out.println("users: "+users);
         //Set<String> usersList = new HashSet<String>(Arrays.asList(users.split(",")));
-        Set<String> usersList = new HashSet<String>(new ArrayList<>(Arrays.asList(users.split(","))));
+        Set<String> usersList = new HashSet<String>(new ArrayList<>(Arrays.asList(users.trim().split(","))));
+        for (String string : usersList) {
+            System.out.println("users member: "+ string);
+        }
         System.out.println("usersList: "+usersList.toString());
         Map<String, String> activeUsersList = cache.getAll(usersList);
         System.out.println("activeUsersList size: "+activeUsersList.size());
