@@ -100,7 +100,7 @@
                     var name = $("#name").val();
                     console.log("Val: " + name);
                     /* CHAT CONNECTION */
-                    chatSocket = new WebSocket("ws://localhost:8080/chat/" + name);
+                    chatSocket = new WebSocket("ws://botsaker.battlebit.org:8080/chat/" + name);
                     chatSocket.onopen = function () {
                         connected = true;
                         console.log("Connected to the Chat Channel");
