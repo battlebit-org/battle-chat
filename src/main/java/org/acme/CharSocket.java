@@ -63,24 +63,36 @@ import io.quarkus.infinispan.client.Remote;
     public void onMessage(String message, @PathParam("username") String username) {
         String[] values = {"Seba","Admin"};
         boolean contains = Arrays.stream(values).anyMatch(username::equals);
-        System.out.println("CHAR "+username+" Message: "+message);
+        
         if(message.startsWith("/") && contains){
-            System.out.println("CHAR "+username+" is admin ");
-            String joinedProfile = cache.get(username) ;
+            
+            
             String[] attributes = null;
+            String newProfile = null;
+            String changeUser= null;
+            String changeProfile = null;
             if(message.startsWith("/change exp")){
-                System.out.println("CHAR "+username+" change exp ");
-                System.out.println("CHAR joinedProfile "+joinedProfile);
-                List<String> commandAndParams = Arrays.asList(Pattern.compile(" ").split(message));
-                System.out.println("CHAR paso 1");
-                attributes = Pattern.compile("\\|").split(joinedProfile);
-                System.out.println("CHAR user exp "+attributes[1]);
-                Integer userExpValue = Integer.valueOf(attributes[1].split(":")[1]);
-                System.out.println("CHAR user exp value "+userExpValue);
-                attributes[1] = "exp:"+Math.addExact(userExpValue, Integer.valueOf(commandAndParams.get(4))) ;
+                // EX: /change exp add 1000 to Sergio
+                List<String> commandAndParams = Arrays.asList(Pattern.compile("\\s").split(message));
+                changeUser = commandAndParams.get(5);
+                changeProfile = cache.get(changeUser) ;
 
+                attributes = Pattern.compile("\\|").split(changeProfile);
+                Integer userExpValue = Integer.valueOf(attributes[1].split("\\:")[1]);
+                Integer newExp = userExpValue+Integer.valueOf(commandAndParams.get(3));
+                
+                attributes[1] = "exp:"+newExp ;
+                
+                newProfile = Arrays.toString(attributes);
+                newProfile = newProfile.replaceAll("\\[", "");
+                newProfile = newProfile.replaceAll("\\]", "");
+                newProfile = newProfile.replaceAll("\\s", "");
+                newProfile = newProfile.replaceAll(",", "|");
+                cache.replace(changeUser,newProfile);
+
+                System.out.println("Exp added to "+changeUser);
             }
-            broadcast(username + "," + "add" + "," + attributes.toString());
+            broadcast(changeUser + "," + "update" + "," + newProfile);
         }
     }
 
@@ -88,7 +100,7 @@ import io.quarkus.infinispan.client.Remote;
         sessions.values().forEach(s -> {
             s.getAsyncRemote().sendObject(message, result ->  {
                 if (result.getException() != null) {
-                    System.out.println("Unable to send message: " + result.getException());
+                    
                 }
             });
         });

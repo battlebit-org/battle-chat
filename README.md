@@ -66,3 +66,13 @@ curl -u admin:password --digest -X GET http://localhost:11222/rest/v2/caches/cha
 }
 
 ```
+
+
+# Quickstart
+
+```shell
+podman run -d -p 11222:11222 -e USER="admin" -e PASS="password" --net=host quay.io/infinispan/server:13.0
+curl -v -u admin:password --digest -H 'Accept: application/json' -H 'Content-Type: application/json' -X POST http://localhost:11222/rest/v2/caches/character -d "@./conf/character.json"
+curl -v -u admin:password --digest -H 'Accept: application/json' -H 'Content-Type: application/json' -X POST http://localhost:11222/rest/v2/caches/character-active -d "@./conf/character.json"
+./mvnw compile quarkus:dev
+```

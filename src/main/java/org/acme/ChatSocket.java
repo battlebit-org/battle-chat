@@ -46,7 +46,7 @@ import io.quarkus.infinispan.client.Remote;
         String profile = cache.get(username);
         if(profile==null){
             profile = "";
-            cache.put(username,"level:1-job:unknown");
+            cache.put(username,"level:1|exp:0|job:unknown");
             
             System.out.println("Username and profile cached");
         }else{
