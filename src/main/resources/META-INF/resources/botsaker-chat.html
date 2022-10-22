@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset="UTF-8">
+        <title>Battle Chat!</title>
+        <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/css/patternfly.min.css">
+        <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/css/patternfly-additions.min.css">
+
+        <style>
+            #chat {
+                resize: none;
+                overflow: hidden;
+                min-height: 300px;
+                max-height: 300px;
+            }
+            .circle {
+                width: 220px;
+                background: red;
+                -moz-border-radius: 70px;
+                -webkit-border-radius: 70px;
+                border-radius: 5px;
+                margin: 0 auto;
+                position: relative;
+                top: 20px;
+                text-align: center;
+                color: white;
+            }
+            .container {
+                display: inline-block;
+                position: relative;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        </style>
+    </head>
+
+    <body>
+        <nav class="navbar navbar-default navbar-pf" role="navigation">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="/">
+                    <p>
+                        <strong>>> Battle Chat!</strong>
+                    </p>
+                </a>
+            </div>
+        </nav>
+        <div class="container">
+            <br/>
+            <div class="row">
+                <input id="name" class="col-md-4" type="text" placeholder="your name">
+                <button id="connect" class="col-md-1 btn btn-primary" type="button">connect</button>
+                <br/>
+                <br/>
+            </div>
+            <div class="row">
+                <textarea class="col-md-8" id="chat"></textarea>
+            </div>
+            <div class="row">
+                <input class="col-md-6" id="msg" type="text" placeholder="enter your message">
+                <button class="col-md-1 btn btn-primary" id="send" type="button" disabled>send</button>
+            </div>
+            <div class="col-md-6" id="profile"></div>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/js/patternfly.min.js"></script>
+
+        <script type="text/javascript">
+            var connected = false;
+            var chatSocket;
+            var charSocket;
+
+            $(document).ready(function () {
+                $("#connect").click(connect);
+                $("#send").click(sendMessage);
+
+                $("#name").keypress(function (event) {
+                    if (event.keyCode == 13 || event.which == 13) {
+                        connect();
+                    }
+                });
+
+                $("#msg").keypress(function (event) {
+                    if (event.keyCode == 13 || event.which == 13) {
+                        sendMessage();
+                    }
+                });
+
+                $("#chat").change(function () {
+                    scrollToBottom();
+                });
+
+                $("#name").focus();
+            });
+
+            var connect = function () {
+                if (!connected) {
+                    var name = $("#name").val();
+                    console.log("Val: " + name);
+                    /* CHAT CONNECTION */
+                    chatSocket = new WebSocket("ws://botsaker.battlebit.org:8080/chat/" + name);
+                    chatSocket.onopen = function () {
+                        connected = true;
+                        console.log("Connected to the Chat Channel");
+                        $("#send").attr("disabled", false);
+                        $("#connect").attr("disabled", true);
+                        $("#name").attr("disabled", true);
+                        $("#msg").focus();
+                    };
+                    chatSocket.onmessage = function (m) {
+                        console.log("Got chat message: " + m.data);
+                        $("#chat").append(m.data.replaceAll('>>', ' 💬 ') + "\n");
+                        scrollToBottom();
+
+                    };
+
+                    /* CHARACTER CONNECTION */
+                    charSocket = new WebSocket("ws://botsaker.battlebit.org:8080/char/" + name);
+                    charSocket.onopen = async function () {
+                        connected = true;
+                        console.log("Connected to the Character Channel");
+                        $("#send").attr("disabled", false);
+                        $("#connect").attr("disabled", true);
+                        $("#name").attr("disabled", true);
+                        $("#msg").focus();
+                        var activeProfiles = await getAllActiveProfile();
+                        console.log("activeProfiles: "+ activeProfiles);
+                        activeProfiles = activeProfiles.replaceAll('{','');
+                        activeProfiles = activeProfiles.replaceAll('}','');
+                        var profileArray = activeProfiles.split(',');
+                        console.log("activeProfiles: "+ activeProfiles);
+                        console.log("profileArray.length: "+ profileArray.length);
+                        profileArray.forEach(async function (element){
+                            console.log("element: "+element);
+                            element = element.replace("=",",");
+                            var userData = element.split(",");
+                            addElement(userData[1],userData[0].replace(/\s/g, ''));
+                            
+                        
+                        });
+                        
+
+
+                    };
+                    charSocket.onmessage = async function (m) {
+                        console.log("Got char message: " + m.data);
+                        var contentArray = m.data.split(",");
+                        var idName = contentArray[0];
+                        var idAction = contentArray[1];
+                        var profile = contentArray[2];  
+                        console.log("idName: "+idName);
+                        console.log("idAction: "+idAction);           
+                        console.log("profile: "+profile);
+                        if(idAction.replace(/\s/g, '')=="add") {
+                            addElement(profile,idName);
+                        }else if(idAction.replace(/\s/g, '')=="remove"){
+                            removeElement(idName.replace(/\s/g, ''));
+                        }else if(idAction.replace(/\s/g, '')=="update"){
+                            addElement(profile,idName.replace(/\s/g, ''));
+                        }
+
+
+                    };
+                }
+            };
+
+            var sendMessage = function () {
+                if ($("#msg").val().length > 0 && connected) {
+                    var value = $("#msg").val();
+                    console.log("Sending " + value);
+                    if (value.startsWith('/')) {
+                        charSocket.send(value);
+                    } else {
+                        chatSocket.send(value);
+                    }
+                    $("#msg").val("");
+                }
+            };
+
+            var scrollToBottom = function () {
+                $('#chat').scrollTop($('#chat')[0].scrollHeight);
+            };
+
+            var addElement = function (profile, idName) {
+                var newDiv = document.createElement("div");
+                newDiv.setAttribute("id", idName);
+                newDiv.setAttribute("class", "circle");
+                var newContent = document.createTextNode(idName+","+profile);
+                newDiv.appendChild(newContent); //añade texto al div creado.
+
+                // añade el elemento creado y su contenido al DOM
+                var currentDiv = document.getElementById("profile");
+                var oldDiv = document.getElementById(idName);
+                if (oldDiv == null) {
+                    currentDiv.appendChild(newDiv);
+                } else {
+                    currentDiv.replaceChild(newDiv, oldDiv);
+                }
+
+            };
+            var removeElement = function (idName) {
+
+                // añade el elemento creado y su contenido al DOM
+                var currentDiv = document.getElementById(idName);
+                currentDiv.remove();
+
+            };
+
+            var getIdName = function (data) {
+                let regexp = /^>>\ (.*)\:/g;
+
+                let matchAll = data.matchAll(regexp);
+                matchAll = Array.from(matchAll); // array now
+                let firstMatch = matchAll[0];
+
+                return firstMatch[1];
+
+            };
+            var getProfileName = function (data) {
+                let regexp = /^(.*)\=.*/g;
+
+                let matchAll = data.matchAll(regexp);
+                matchAll = Array.from(matchAll); // array now
+                let firstMatch = matchAll[0];
+
+                return firstMatch[1];
+
+            };
+            var getIdAction = function (data) {
+                let regexp = /^>>.*\:.*[[(.*)]]/g;
+
+                let matchAll = data.matchAll(regexp);
+                matchAll = Array.from(matchAll);
+                let firstMatch = matchAll[0];
+
+                console.log("matchAll.length: "+matchAll.length);
+                if(matchAll.length==0) return null;
+                return firstMatch[1];
+
+            };
+            var getMessageContent = function (data) {
+                let regexp = /^>>.*\:\ \[(.*)\]/g;
+
+                let matchAll = data.matchAll(regexp);
+                matchAll = Array.from(matchAll);
+                let firstMatch = matchAll[0];
+
+                console.log("matchAll.length: "+matchAll.length);
+                if(matchAll.length==0) return null;
+                return firstMatch[1];
+
+            };
+
+            var getProfile = async function (username) {
+                var profile = await fetch('http://botsaker.battlebit.org:8080/profile/single/' + username,{
+                                        method: 'GET', // *GET, POST, PUT, DELETE, etc.
+                                        mode: 'cors', // no-cors, *cors, same-origin
+                                        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+                                        credentials: 'same-origin', // include, *same-origin, omit
+                                        headers: {
+                                        'Content-Type': 'plain/text'
+                                        }
+                                    }).then(function (response) {
+                    return response
+                        .text()
+                        .then(function (text) {
+                            return text;
+                        });
+                });
+                return profile;
+            };
+
+            var getAllActiveProfile = async function (usernames) {
+                var profiles = await fetch('http://botsaker.battlebit.org:8080/profile/all',{
+                                        method: 'POST', // *GET, POST, PUT, DELETE, etc.
+                                        mode: 'cors', // no-cors, *cors, same-origin
+                                        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+                                        credentials: 'same-origin', // include, *same-origin, omit
+                                        headers: {
+                                        'Content-Type': 'plain/text'
+                                        },
+                                        body: usernames
+                                    }).then(function (response) {
+                    return response
+                        .text()
+                        .then(function (text) {
+                            return text;
+                        });
+                });
+                return profiles;
+            };
+
+            var formatProfile = function (rawProfile) {
+                var formatedProfile = rawProfile.replaceAll('-', ' ✅ ');
+                return formatedProfile;
+            }
+
+            var formatMessage = function (rawMessage) {
+                var formatedMessage = rawMessage.replaceAll('>>', ' 💬 ');
+                return formatedMessage;
+            }
+
+        </script>
+    </body>
+
+</html>
