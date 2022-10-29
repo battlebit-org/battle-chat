@@ -30,30 +30,14 @@ import io.quarkus.infinispan.client.Remote;
  
      @Inject @Remote("character")
      RemoteCache<String, String> cache;
-
-     @Inject @Remote("character-active")
-     RemoteCache<String, String> cacheActive;
  
      RemoteCacheManager remoteCacheManager;
 
     @OnOpen
     public void onOpen(Session session, @PathParam("username") String username) {
         System.out.println("Opening");
-        
         sessions.put(username, session);
-        Set<String> usersList = sessions.keySet();
-
-        String profile = cache.get(username);
-        if(profile==null){
-            profile = "";
-            cache.put(username,"level:1|exp:0|job:unknown");
-            
-            System.out.println("Username and profile cached");
-        }else{
-            System.out.println("Username already exist in cache");
-        }
-        cacheActive.put("users", usersList.toString());
-        broadcast(username+" has joined the channel");
+        System.out.println(username+" has joined the channel");
         
         
     }
@@ -61,9 +45,6 @@ import io.quarkus.infinispan.client.Remote;
     @OnClose
     public void onClose(Session session, @PathParam("username") String username) {
         sessions.remove(username);
-        Set<String> usersList = sessions.keySet();
-        cacheActive.remove("users");
-        cacheActive.put("users", usersList.toString());
         broadcast(username + ",message");
     }
 
@@ -75,11 +56,28 @@ import io.quarkus.infinispan.client.Remote;
 
     @OnMessage
     public void onMessage(String message, @PathParam("username") String username) {
-        cache.put(username, message);
+
+        String finalUsername = message.split("[|_|]")[0];
+        String profile = cache.get(finalUsername);
+        String newProfile = null;
+        if(profile==null){
+            cache.put(finalUsername,"1");
+            System.out.println("Username and profile cached");
+            System.out.println("MESSAGE: "+ message);
+            System.out.println("Username: "+finalUsername+", and profile: "+1);
+
+        }else{
+            System.out.println("Username already exist in cache");
+            System.out.println("Username: "+finalUsername+", and profile: "+profile);
+            newProfile = String.valueOf(Integer.valueOf(profile).intValue() + 1);
+            System.out.println("Username: "+finalUsername+", and profile: "+newProfile);
+            cache.replace(finalUsername, newProfile);
+
+        }
         if (message.equalsIgnoreCase("_ready_")) {
-            broadcast(">> " + username + ": joined");
+            System.out.println(">> " + username + ": joined");
         } else {
-            broadcast(">> " + username + ": " + message );
+            broadcast( message );
         }
     }
 

@@ -1,6 +1,5 @@
 {
-    "distributed-cache": {
-        "mode": "SYNC",
+    "local-cache": {
         "encoding": {
             "media-type": "application/x-protostream"
         },

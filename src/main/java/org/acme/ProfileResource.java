@@ -31,31 +31,17 @@ public class ProfileResource {
     @Produces(MediaType.TEXT_PLAIN)
     public String getOneProfile(@PathParam("username") String username) {
         if(cache.get(username) == null){
-            cache.put(username,"-level=1-job=unknown");
+            cache.put(username,"1");
         }
-        return username+","+cache.get(username);
+        return cache.get(username);
     }
     
     @Path("/all")
     @POST
     @Produces(MediaType.TEXT_PLAIN)
     public String getAllProfile(String requesString) {
-        String users = cacheActive.get("users");
-        System.out.println("users: "+users);
-        users = users.replaceAll("\\[", "");
-        users = users.replaceAll("\\]", "");
-        users = users.trim();
-        System.out.println("users: "+users);
-        //Set<String> usersList = new HashSet<String>(Arrays.asList(users.split(",")));
-        Set<String> usersList = new HashSet<String>(new ArrayList<>(Arrays.asList(users.trim().split(","))));
-        for (String string : usersList) {
-            System.out.println("users member: "+ string);
-        }
-        System.out.println("usersList: "+usersList.toString());
-        Map<String, String> activeUsersList = cache.getAll(usersList);
-        System.out.println("activeUsersList size: "+activeUsersList.size());
-        System.out.println("activeUsersList : "+activeUsersList);
-        return activeUsersList.toString();
+
+        return "NOT IMPLEMENTED";
     }
 
     @Inject ProfileResource(RemoteCacheManager remoteCacheManager) {
@@ -64,8 +50,6 @@ public class ProfileResource {
  
      @Inject @Remote("character")
      RemoteCache<String, String> cache;
-     @Inject @Remote("character-active")
-     RemoteCache<String, String> cacheActive;
      
      RemoteCacheManager remoteCacheManager;
 }

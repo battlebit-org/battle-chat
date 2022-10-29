@@ -6,8 +6,12 @@
         <title>Battle Chat!</title>
         <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/css/patternfly.min.css">
         <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/css/patternfly-additions.min.css">
-
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/gif-player-jquery@0.2.2/dist/gifplayer.css">
         <style>
+            body {
+                background-image: url("http://botsaker.battlebit.org:8080/images/battle-chat-bg.png");
+                background-repeat: repeat;
+            }
             #chat {
                 resize: none;
                 overflow: hidden;
@@ -15,16 +19,17 @@
                 max-height: 300px;
             }
             .circle {
-                width: 220px;
-                background: red;
+                width: auto;
                 -moz-border-radius: 70px;
                 -webkit-border-radius: 70px;
-                border-radius: 5px;
+                border-radius: 70px;
                 margin: 0 auto;
                 position: relative;
                 top: 20px;
                 text-align: center;
                 color: white;
+                float: left;
+                padding: 0px 5px;
             }
             .container {
                 display: inline-block;
@@ -48,208 +53,121 @@
         <div class="container">
             <br/>
             <div class="row">
-                <input id="name" class="col-md-4" type="text" placeholder="your name">
-                <button id="connect" class="col-md-1 btn btn-primary" type="button">connect</button>
-                <br/>
-                <br/>
+                <div class="col-md-12" id="chat"></div>
             </div>
-            <div class="row">
-                <textarea class="col-md-8" id="chat"></textarea>
-            </div>
-            <div class="row">
-                <input class="col-md-6" id="msg" type="text" placeholder="enter your message">
-                <button class="col-md-1 btn btn-primary" id="send" type="button" disabled>send</button>
-            </div>
-            <div class="col-md-6" id="profile"></div>
+            <div class="col-md-12" id="profile" style="float:left;"></div>
         </div>
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/patternfly/3.24.0/js/patternfly.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/gif-player-jquery@0.2.2/dist/jquery.gifplayer.js"></script>
 
         <script type="text/javascript">
             var connected = false;
             var chatSocket;
-            var charSocket;
+            var activeUsers = [];
 
             $(document).ready(function () {
-                $("#connect").click(connect);
-                $("#send").click(sendMessage);
-
-                $("#name").keypress(function (event) {
-                    if (event.keyCode == 13 || event.which == 13) {
-                        connect();
-                    }
-                });
-
-                $("#msg").keypress(function (event) {
-                    if (event.keyCode == 13 || event.which == 13) {
-                        sendMessage();
-                    }
-                });
-
                 $("#chat").change(function () {
                     scrollToBottom();
                 });
-
-                $("#name").focus();
+                $('#chat').each(function(){
+                    this.contentEditable = true;
+                });
+                connect();
             });
 
             var connect = function () {
                 if (!connected) {
-                    var name = $("#name").val();
+                    var name = 'battle-chat-'+Math.floor(Math.random() * 1000)+'-'+Date.now();
                     console.log("Val: " + name);
+
                     /* CHAT CONNECTION */
                     chatSocket = new WebSocket("ws://botsaker.battlebit.org:8080/chat/" + name);
                     chatSocket.onopen = function () {
                         connected = true;
                         console.log("Connected to the Chat Channel");
-                        $("#send").attr("disabled", false);
-                        $("#connect").attr("disabled", true);
-                        $("#name").attr("disabled", true);
-                        $("#msg").focus();
                     };
-                    chatSocket.onmessage = function (m) {
+
+                    chatSocket.onmessage = async function (m) {
                         console.log("Got chat message: " + m.data);
-                        $("#chat").append(m.data.replaceAll('>>', ' 💬 ') + "\n");
+                        
+                        
+                        var idName = m.data.split('|_|')[0];
+                        var message = m.data.split('|_|')[1];
+                        var pictureUrl = m.data.split('|_|')[2];
+                        var profile = await getProfile(idName);
+
+                        $("#chat").append("<b>" +idName + "</b>: " + message + "</br>");
                         scrollToBottom();
 
-                    };
-
-                    /* CHARACTER CONNECTION */
-                    charSocket = new WebSocket("ws://botsaker.battlebit.org:8080/char/" + name);
-                    charSocket.onopen = async function () {
-                        connected = true;
-                        console.log("Connected to the Character Channel");
-                        $("#send").attr("disabled", false);
-                        $("#connect").attr("disabled", true);
-                        $("#name").attr("disabled", true);
-                        $("#msg").focus();
-                        var activeProfiles = await getAllActiveProfile();
-                        console.log("activeProfiles: "+ activeProfiles);
-                        activeProfiles = activeProfiles.replaceAll('{','');
-                        activeProfiles = activeProfiles.replaceAll('}','');
-                        var profileArray = activeProfiles.split(',');
-                        console.log("activeProfiles: "+ activeProfiles);
-                        console.log("profileArray.length: "+ profileArray.length);
-                        profileArray.forEach(async function (element){
-                            console.log("element: "+element);
-                            element = element.replace("=",",");
-                            var userData = element.split(",");
-                            addElement(userData[1],userData[0].replace(/\s/g, ''));
-                            
-                        
-                        });
-                        
-
+                        addElement(profile,idName,pictureUrl);
 
                     };
-                    charSocket.onmessage = async function (m) {
-                        console.log("Got char message: " + m.data);
-                        var contentArray = m.data.split(",");
-                        var idName = contentArray[0];
-                        var idAction = contentArray[1];
-                        var profile = contentArray[2];  
-                        console.log("idName: "+idName);
-                        console.log("idAction: "+idAction);           
-                        console.log("profile: "+profile);
-                        if(idAction.replace(/\s/g, '')=="add") {
-                            addElement(profile,idName);
-                        }else if(idAction.replace(/\s/g, '')=="remove"){
-                            removeElement(idName.replace(/\s/g, ''));
-                        }else if(idAction.replace(/\s/g, '')=="update"){
-                            addElement(profile,idName.replace(/\s/g, ''));
-                        }
 
-
-                    };
                 }
             };
-
-            var sendMessage = function () {
-                if ($("#msg").val().length > 0 && connected) {
-                    var value = $("#msg").val();
-                    console.log("Sending " + value);
-                    if (value.startsWith('/')) {
-                        charSocket.send(value);
-                    } else {
-                        chatSocket.send(value);
-                    }
-                    $("#msg").val("");
-                }
-            };
-
             var scrollToBottom = function () {
                 $('#chat').scrollTop($('#chat')[0].scrollHeight);
             };
 
-            var addElement = function (profile, idName) {
+            var addElement = async function (profile, idName, pictureUrl) {
+                // NEW DIV
                 var newDiv = document.createElement("div");
                 newDiv.setAttribute("id", idName);
                 newDiv.setAttribute("class", "circle");
-                var newContent = document.createTextNode(idName+","+profile);
-                newDiv.appendChild(newContent); //añade texto al div creado.
+                // NEW IMAGE
+                const newImage = document.createElement('img');
+                await newImage.setAttribute(
+                    'src',
+                    pictureUrl,
+                );
+                await newImage.setAttribute(
+                    'alt',
+                    'User: ' + idName + '- Score: ' + profile,
+                );
+                newImage.style.border = '3px solid white';
+                newImage.style.borderRadius = 'inherit';
+                newImage.style.width = '100px'
+                newImage.style.height = '100px'
+
+                // NEW GIF
+                const newGif = document.createElement('img');
+                await newGif.setAttribute(
+                    'src',
+                    pictureUrl,
+                );
+                newGif.style.width = '100px'
+                newGif.style.height = '100px'
+                // var newContentName = document.createTextNode("["+idName+"]");
+                // var newContentScore = document.createTextNode("["+profile.toString()+"]");
+                // newDiv.appendChild(newContentName); //añade texto al div creado.
+                // newDiv.appendChild(newContentScore); //añade texto al div creado.
+                newDiv.appendChild(newImage); //añade texto al div creado.
 
                 // añade el elemento creado y su contenido al DOM
                 var currentDiv = document.getElementById("profile");
                 var oldDiv = document.getElementById(idName);
                 if (oldDiv == null) {
                     currentDiv.appendChild(newDiv);
+                    console.log("APPENDING NEW");
                 } else {
                     currentDiv.replaceChild(newDiv, oldDiv);
+                    console.log("REPLACING NEW");
+                    console.log("newDiv -> "+newDiv);
+                    console.log("oldDiv -> "+oldDiv);
                 }
-
+                var user = {name: idName, lastActive: Date.now()}
+                activeUsers.push(user);
+                spawnTemp(newDiv, idName);
             };
+
             var removeElement = function (idName) {
 
                 // añade el elemento creado y su contenido al DOM
                 var currentDiv = document.getElementById(idName);
                 currentDiv.remove();
-
-            };
-
-            var getIdName = function (data) {
-                let regexp = /^>>\ (.*)\:/g;
-
-                let matchAll = data.matchAll(regexp);
-                matchAll = Array.from(matchAll); // array now
-                let firstMatch = matchAll[0];
-
-                return firstMatch[1];
-
-            };
-            var getProfileName = function (data) {
-                let regexp = /^(.*)\=.*/g;
-
-                let matchAll = data.matchAll(regexp);
-                matchAll = Array.from(matchAll); // array now
-                let firstMatch = matchAll[0];
-
-                return firstMatch[1];
-
-            };
-            var getIdAction = function (data) {
-                let regexp = /^>>.*\:.*[[(.*)]]/g;
-
-                let matchAll = data.matchAll(regexp);
-                matchAll = Array.from(matchAll);
-                let firstMatch = matchAll[0];
-
-                console.log("matchAll.length: "+matchAll.length);
-                if(matchAll.length==0) return null;
-                return firstMatch[1];
-
-            };
-            var getMessageContent = function (data) {
-                let regexp = /^>>.*\:\ \[(.*)\]/g;
-
-                let matchAll = data.matchAll(regexp);
-                matchAll = Array.from(matchAll);
-                let firstMatch = matchAll[0];
-
-                console.log("matchAll.length: "+matchAll.length);
-                if(matchAll.length==0) return null;
-                return firstMatch[1];
 
             };
 
@@ -272,36 +190,49 @@
                 return profile;
             };
 
-            var getAllActiveProfile = async function (usernames) {
-                var profiles = await fetch('http://botsaker.battlebit.org:8080/profile/all',{
-                                        method: 'POST', // *GET, POST, PUT, DELETE, etc.
-                                        mode: 'cors', // no-cors, *cors, same-origin
-                                        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-                                        credentials: 'same-origin', // include, *same-origin, omit
-                                        headers: {
-                                        'Content-Type': 'plain/text'
-                                        },
-                                        body: usernames
-                                    }).then(function (response) {
-                    return response
-                        .text()
-                        .then(function (text) {
-                            return text;
-                        });
+            function makeNewPosition(){
+    
+                // Get viewport dimensions (remove the dimension of the div)
+                var h = $(window).height()/2 - 50;
+                var w = $(window).width()/3 - 50;
+                
+                var nh = Math.floor(Math.random() * h);
+                var nw = Math.floor(Math.random() * w);
+                
+                return [nh,nw];    
+                
+            }
+
+            function animateDiv(myid){
+                var newq = makeNewPosition();
+                $("#"+myid).animate({ top: newq[0], left: newq[1] }, 3000,   function(){
+                    animateDiv(myid);        
                 });
-                return profiles;
+                
             };
 
-            var formatProfile = function (rawProfile) {
-                var formatedProfile = rawProfile.replaceAll('-', ' ✅ ');
-                return formatedProfile;
-            }
+            function spawnTemp(deleteMe, idName) {
+                setTimeout(function() {
+                    console.log("SPAWN-TIMEOUT");
+                    console.log(new Date(activeUsers.find(element => element => idName).lastActive));
+                    console.log(new Date());
+                    if(Math.abs(
+                        (
+                          new Date()
+                        )
+                        -
+                        (
+                          new Date(activeUsers.find(element => element => idName).lastActive)
+                        )
+                       )>5*60000){
+                       console.log("TIME-TO-DELETE: "+idName);
+                        $(deleteMe).fadeOut(2000, function() {
+                            $(deleteMe).remove();
+                        });
+                    }
 
-            var formatMessage = function (rawMessage) {
-                var formatedMessage = rawMessage.replaceAll('>>', ' 💬 ');
-                return formatedMessage;
+                }, 5*60000);
             }
-
         </script>
     </body>
 
